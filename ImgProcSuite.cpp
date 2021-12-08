@@ -8,7 +8,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/core.hpp>
-
+// # of functions is: 6
 using namespace cv; //histogramEQ returns int **output which replaces image_out
 int **histogramEQ(const int &width, const int &height, int **input, int **output){ //could have passed a reference to output but having a variable with a type int **& was slightly worrying
 	int hist[256] = {0};
@@ -68,6 +68,24 @@ int **sobelEdgeDetection(const int &width, const int &height, int** input, int**
 	return output;
 }
 int **prewittEdgeDetection(const int &width, const int &height, int** input, int** output){
+	int sum = 0;
+	int fgx;
+	int fgy;
+	for(int y = 1; y < height - 1; y++){
+            for(int x = 1; x < width - 1; x++){
+                auto gx = [](int **input, int y, int x) -> int {return (-1 * input[y-1][x-1] - input[y-1][x] - input[y-1][x+1] + input[y+1][x-1] +
+                   input[y+1][x] + input[y+1][x+1]);}; 
+				auto gy = [](int **input, int y, int x) -> int {return (-1 * input[y-1][x-1] - input[y][x-1] - input[y+1][x-1] + input[y-1][x+1] +
+                   input[y][x+1] + input[y+1][x+1]);};
+				fgx = gx(input, y, x);
+                fgy = gy(input, y, x);
+                sum = abs(fgx) + abs(fgy);
+                sum = sum > 255 ? 255:sum;
+                sum = sum < 0 ? 0 : sum;
+                output[y][x] = sum;
+            }
+        }
+
 	return output;
 }
 int **convolution(const int &width, const int &height, int **input, int **kernel, int** output){
@@ -96,7 +114,6 @@ int **convolution(const int &width, const int &height, int **input, int **kernel
 	}
 	return output;
 }
-
 int **thresholding(const int &width, const int &height, int** input, int** output){
 	int threshold = 128; //starting the threshold at the middle of the range seems fair
 	int oldThreshold;
@@ -215,6 +232,9 @@ int main(int argc, char *argv[]){
 			break;
 		case 5:
 			image_out = thresholding(width, height, image_in, image_out);
+			break;
+		case 6:
+			image_out = prewittEdgeDetection(width, height, image_in, image_out);
 			break;
 		default:
 			return 0;
