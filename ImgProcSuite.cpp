@@ -1,7 +1,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
-
 #include <stdlib.h>
 #include <cmath>
 #include <vector>
@@ -11,7 +10,7 @@
 #include <opencv2/core.hpp>
 
 using namespace cv; //histogramEQ returns int **output which replaces image_out
-int **histogramEQ(const int width, const int height, int **input, int **output){ //could have passed a reference to output but having a variable with a type int **& was slightly worrying
+int **histogramEQ(const int &width, const int &height, int **input, int **output){ //could have passed a reference to output but having a variable with a type int **& was slightly worrying
 	int hist[256] = {0};
 	int newGreyLevels[256] = {0};
 	int curr = 0;
@@ -39,7 +38,7 @@ int **histogramEQ(const int width, const int height, int **input, int **output){
 	return output;
 	//these nested loops could very well be multithreaded but im not sure what kind of mutex implementation it would require 
 }
-void negative(int width, int height, int** input, int**& output){
+void negative(const int &width, const int &height, int** input, int**& output){
 	int j,k;
 	for (j=0; j<height; j++){
 		for (k=0; k<width; k++){
@@ -47,14 +46,14 @@ void negative(int width, int height, int** input, int**& output){
 		}
 	}
 }
-int **sobelEdgeDetection(const int width, const int height, int** input, int** output){
+int **sobelEdgeDetection(const int &width, const int &height, int** input, int** output){
 	int sum = 0;
 	int fgx;
 	int fgy;
 	for(int y = 1; y < height - 1; y++){
-            for(int x = 1; x < width - 1; x++){ //admittedly a lambda function is probably not the right thing to use here but it fits since these functions will very much be used a single time
+            for(int x = 1; x < width - 1; x++){
                 auto gy = [](int **input, int y, int x) -> int {return (input[y-1][x-1] + 2*input[y-1][x] + input[y-1][x+1] - input[y+1][x-1] -
-                   2*input[y+1][x] - input[y+1][x+1]);};
+                   2*input[y+1][x] - input[y+1][x+1]);}; //there is probably unecessary padding in these functions for type safety
 				auto gx = [](int **input, int y, int x) -> int {return (input[y-1][x-1] + 2*input[y][x-1] + input[y+1][x-1] - input[y-1][x+1] -
                    2*input[y][x+1] - input[y+1][x+1]);};
 				fgx = gx(input, y, x);
@@ -66,6 +65,9 @@ int **sobelEdgeDetection(const int width, const int height, int** input, int** o
             }
         }
 
+	return output;
+}
+int **prewittEdgeDetection(const int &width, const int &height, int** input, int** output){
 	return output;
 }
 int **convolution(const int &width, const int &height, int **input, int **kernel, int** output){
@@ -88,16 +90,49 @@ int **convolution(const int &width, const int &height, int **input, int **kernel
     }
 	for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-			if (output[i][j] > 255){
-				output[i][j] = 255;
-			}
-			if (output[i][j] < 0){
-				output[i][j] = 0;
-			}
+			output[i][j] = output[i][j] > 255 ? 255 : output[i][j];
+			output[i][j] = output[i][j] < 0 ? 0 : output[i][j];
 		}
 	}
 	return output;
 }
+
+int **thresholding(const int &width, const int &height, int** input, int** output){
+	int threshold = 128; //starting the threshold at the middle of the range seems fair
+	int oldThreshold;
+	int deltaT = 5;
+	uint64_t brightP = 0, darkP = 0, bSum = 0, dSum = 0; //probably need 64bit int and wont be negative ever
+	double bAvg = 0, dAvg = 0;
+	//use a do while to get into the loop before checking since we know we're going to be in it at least once
+	do{
+		oldThreshold = threshold;
+		for (int j = 0; j < height; j++){
+			for (int k = 0; k < width; k++) {
+				if(input[j][k] >= threshold){
+					bSum += input[j][k];
+					brightP++;
+				}else{
+					dSum += input[j][k];
+					darkP++;
+				}
+			}
+		}
+		bAvg = (double)bSum/brightP;
+		dAvg = (double)dSum/darkP;
+		threshold = (bAvg + dAvg) * 0.5;
+		deltaT = abs(threshold - oldThreshold);
+	} while(deltaT >= 5);
+
+	for (int j = 0; j < height; j++){
+		for (int k = 0; k < width; k++) {
+			//std::cout << "thresholding" << std::endl;
+			output[j][k] = input[j][k] >= threshold ? 255 : 0;
+		}
+	}
+
+	return output;
+}
+
 int main(int argc, char *argv[]){
 	int j, k, width, height;
 	std::string windowName = "Input Image";
@@ -163,8 +198,7 @@ int main(int argc, char *argv[]){
 	int choice;
 	std::cout << "Choose an Processing Function\n" << "Type 1 to output the negative of your image" << std::endl;
 	std::cout << "Type 2 to output a histogram equalized version of your image\n" << "Type 3 to apply an edge detection mask on your image" << std::endl;
-	std::cout << "Type 4 to apply a laplacian sharpening mask on your image\n" << "Fair warning, you will severely alter your image if you run multiple functions" << std::endl;
-	
+	std::cout << "Type 4 to apply a laplacian sharpening mask on your image\n";
 	std::cin >> choice;
 	switch(choice){
 		case 1: 
@@ -178,6 +212,9 @@ int main(int argc, char *argv[]){
 			break;
 		case 4:
 			image_out = convolution(width, height, image_in, kernel, image_out);
+			break;
+		case 5:
+			image_out = thresholding(width, height, image_in, image_out);
 			break;
 		default:
 			return 0;
@@ -194,15 +231,7 @@ int main(int argc, char *argv[]){
 	destroyWindow(secondWindow);
 	destroyWindow(windowName);
 
-/******************************************
- * testing sharpening with OpenCV function
- ******************************************/
-	// Mat mask = (Mat_<double> (3,3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-	// Mat outputTest;
-	// filter2D(M_in_g, outputTest, -1, mask, Point(-1,-1), 0, BORDER_DEFAULT);
-/******************************************
- * testing sharpening with OpenCV function
- ******************************************/
+
 	bool success = imwrite(argv[2], M_out);
 	if (!success){
 		std::cout << "save error"<< std::endl;
