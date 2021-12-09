@@ -8,7 +8,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/core.hpp>
-// # of functions is: 6
+#include <random>
+// # of functions is: 8
 using namespace cv; //histogramEQ returns int **output which replaces image_out
 int **histogramEQ(const int &width, const int &height, int **input, int **output){ //could have passed a reference to output but having a variable with a type int **& was slightly worrying
 	int hist[256] = {0};
@@ -149,6 +150,30 @@ int **thresholding(const int &width, const int &height, int** input, int** outpu
 
 	return output;
 }
+int **addSpeckle(const int &width, const int &height, int** input, int **output){
+	std::random_device rd{};
+	std::mt19937 gen(rd()); //supposedly this will generate a normal distribution
+
+	std::normal_distribution<double> dist{1.75, 0};
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++){
+			output[i][j] = std::round(input[i][j] * dist(gen));
+		}
+	}
+	return output;
+}
+int **whiteNoise(const int &width, const int &height, int** input, int **output){
+	std::random_device rd{};
+	std::mt19937 gen(rd()); //supposedly this will generate a normal distribution
+
+	std::normal_distribution<double> dist{0, 40};
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++){
+			output[i][j] = std::round(input[i][j] + dist(gen));
+		}
+	}	
+	return output;
+}
 
 int main(int argc, char *argv[]){
 	int j, k, width, height;
@@ -215,7 +240,7 @@ int main(int argc, char *argv[]){
 	int choice;
 	std::cout << "Choose an Processing Function\n" << "Type 1 to output the negative of your image" << std::endl;
 	std::cout << "Type 2 to output a histogram equalized version of your image\n" << "Type 3 to apply an edge detection mask on your image" << std::endl;
-	std::cout << "Type 4 to apply a laplacian sharpening mask on your image\n";
+	std::cout << "Type 4 to apply a laplacian sharpening mask on your image\n" << "Type 5 to threshold image\n" << "Type 6 to apply Prewitt Edge Detection mask on your image" << std::endl;
 	std::cin >> choice;
 	switch(choice){
 		case 1: 
@@ -235,6 +260,12 @@ int main(int argc, char *argv[]){
 			break;
 		case 6:
 			image_out = prewittEdgeDetection(width, height, image_in, image_out);
+			break;
+		case 7:
+			image_out = addSpeckle(width, height, image_in, image_out);
+			break;
+		case 8:
+			image_out = whiteNoise(width, height, image_in, image_out);
 			break;
 		default:
 			return 0;
