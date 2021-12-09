@@ -7,8 +7,6 @@ I pledge my honor that I have abided by the Stevens Honor System
 ## Compiling ImgProcSuite.cpp on Windows:
  ### Using CMake:
     Modify CMakeLists.txt to point to the OpenCV directory on your system
- ### Using Make:
-    Modify the sample Makefile to point to the OpenCV directory on your system
  ### Using Visual Studio:
      Set the build target for your project to x64
      In your project, navigate to Project Properties and then to VC++ Directories
