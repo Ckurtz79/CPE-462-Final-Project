@@ -241,6 +241,7 @@ int main(int argc, char *argv[]){
 	std::cout << "Choose an Processing Function\n" << "Type 1 to output the negative of your image" << std::endl;
 	std::cout << "Type 2 to output a histogram equalized version of your image\n" << "Type 3 to apply an edge detection mask on your image" << std::endl;
 	std::cout << "Type 4 to apply a laplacian sharpening mask on your image\n" << "Type 5 to threshold image\n" << "Type 6 to apply Prewitt Edge Detection mask on your image" << std::endl;
+	std::cout << "Type 7 to add speckle to your image\n" << "Type 8 to add white noise to your image\n" << std::endl;
 	std::cin >> choice;
 	switch(choice){
 		case 1: 
